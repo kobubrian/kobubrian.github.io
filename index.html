@@ -17,6 +17,35 @@
       font-family: monospace;
       font-size: 50px;
     }
+    td {
+        position: relative;
+        border: 1px solid #000;
+        width: 70px;
+        height: 70px;
+        text-align: center;
+        vertical-align: middle;
+        font-family: monospace;
+        font-size: 50px;
+        transition: background-color 0.2s ease; /* Smooth hover effect */
+    }
+
+    /* Label Styling */
+    td div {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.6); /* Light gray for better visibility */
+        pointer-events: none;
+        font-weight: bold;
+    }
+
+    /* Highlight Cell on Hover */
+    td:hover {
+        background-color: rgba(0, 0, 255, 0.1); /* Light blue hover effect */
+        cursor: pointer; 
+    }
+
     th {
       background-color: #ddd;
       width: 70px;
@@ -33,6 +62,12 @@
     /* Triangles hidden by default */
     .triangle {
       color: transparent;
+    }
+    td div {
+        position: absolute;
+        top: 2px;
+        left: 4px;
+        pointer-events: none; /* Prevent clicks on labels */
     }
     #feedback,
     #guessFeedback {
@@ -69,14 +104,18 @@
 </div>
 
 <!-- Guessing Game -->
-<div>
-  <strong>Guess a Triangle!</strong><br/>
-  - Enter a cell in "row-col" format, e.g. "0-1"<br/>
-  - Rows/Cols range from 0..3
-  <br/><br/>
-  <input type="text" id="triangleGuess" style="width: 80px;" />
-  <button onclick="guessTriangle()">Guess</button>
-</div>
+<strong>Guess a Triangle!</strong><br/>
+- Enter a cell like "A1", "B2", "D4"<br/>
+- Choose triangle type: 
+<select id="triangleTypeGuess">
+  <option value="UL">Upper Left (UL)</option>
+  <option value="UR">Upper Right (UR)</option>
+  <option value="DL">Down Left (DL)</option>
+  <option value="DR">Down Right (DR)</option>
+</select><br/>
+<input type="text" id="triangleGuess" style="width: 80px;" />
+<button onclick="guessTriangle()">Guess</button>
+
 
 <div id="guessFeedback">
   <strong>Guess Feedback:</strong><br/>
@@ -113,14 +152,18 @@ let shotCount;
  * Keep track of which cells have been guessed
  * so we don't remove triangles from the grid.
  */
-let guessedPositions; // set of "r-c" strings
+ let guessedPositions; // Map: key = "r-c", value = Set of guessed triangle types
+let solvedCells;       // New Set to track fully solved cells
+
 
 /** NEW GAME (INIT) */
 function newGame() {
   totalTriangles = 3;
   guessCount = 0;
   shotCount = 0;
-  guessedPositions = new Set();
+  guessedPositions = new Map();
+    solvedCells = new Set();  // Initialize the solved cells tracker
+
   
   // Clear feedback
   document.getElementById("feedback").innerHTML = "<strong>Shot Feedback:</strong><br/>";
@@ -136,13 +179,19 @@ function newGame() {
  * Place 3 triangles randomly (hidden).
  */
 function placeTriangles() {
-  const corners = ["┌","┐","└","┘"];
+    const corners = {
+  "UL": "Triangle-UL.png",
+  "UR": "Triangle-UR.png",
+  "DL": "Triangle-DL.png",
+  "DR": "Triangle-DR.png"
+    };
+
   let count = 0;
   while (count < 3) {
     let r = Math.floor(Math.random() * rows);
     let c = Math.floor(Math.random() * cols);
     if (!gridData[r][c]) {
-      gridData[r][c] = corners[Math.floor(Math.random() * corners.length)];
+      gridData[r][c] = Object.values(corners)[Math.floor(Math.random() * 4)];
       count++;
     }
   }
@@ -166,37 +215,50 @@ function resetBeamCells() {
 /**
  * Reflection for each corner type.
  */
-function reflectCorner(corner, incoming) {
-  // ┌ (UL)
-  if (corner === "┌") {
+ function reflectCorner(cornerImage, incoming) {
+  // Map images to their triangle directions
+  const mapping = {
+    "Triangle-UL.png": "UL",
+    "Triangle-UR.png": "UR",
+    "Triangle-DL.png": "DL",
+    "Triangle-DR.png": "DR"
+  };
+
+  const corner = mapping[cornerImage];
+
+  if (corner === "UL") { // Upper Left (like ┌)
     if (incoming === "U") return "R";
     if (incoming === "D") return "U";
     if (incoming === "L") return "D";
     if (incoming === "R") return "L";
   }
-  // ┐ (UR)
-  if (corner === "┐") {
+  if (corner === "UR") { // Upper Right (like ┐)
     if (incoming === "U") return "L";
     if (incoming === "D") return "U";
     if (incoming === "L") return "R";
     if (incoming === "R") return "D";
   }
-  // └ (DL)
-  if (corner === "└") {
+  if (corner === "DL") { // Down Left (like └)
     if (incoming === "U") return "D";
     if (incoming === "D") return "R";
     if (incoming === "L") return "U";
     if (incoming === "R") return "L";
   }
-  // ┘ (DR)
-  if (corner === "┘") {
+  if (corner === "DR") { // Down Right (like ┘)
     if (incoming === "U") return "D";
     if (incoming === "D") return "L";
     if (incoming === "L") return "R";
     if (incoming === "R") return "U";
   }
-  return incoming;
+
+  return incoming; // Default: no reflection
 }
+function autoFillGuess(row, col) {
+  const coordinate = `${String.fromCharCode(65 + col)}${row + 1}`; // Converts to A1, B2, etc.
+  document.getElementById("triangleGuess").value = coordinate;     // Auto-fill the input field
+  //guessTriangle();                                                // Automatically make the guess
+}
+
 
 /** Build a 6x6 "outerGrid" (table) with axis labels */
 function buildOuterGrid() {
@@ -223,9 +285,11 @@ function buildOuterGrid() {
 
     for (let c = 0; c < cols; c++) {
       let td = document.createElement("td");
-      td.id = `${r}-${c}`; 
+      td.id = `${r}-${c}`;
+      td.onclick = function() { autoFillGuess(r, c); };  // Add this line
+
       // Triangles hidden by default
-      td.textContent = ""; 
+      td.innerHTML = `<div style="opacity: 0.3; font-size: 12px;">${String.fromCharCode(65 + c)}${r + 1}</div>`;
       td.classList.add("triangle");
 
       rowEl.appendChild(td);
@@ -364,40 +428,69 @@ function markBeamCell(r, c, type) {
 
 /** Guess a triangle's position */
 function guessTriangle() {
-  guessCount++;
   const guessVal = document.getElementById("triangleGuess").value.trim();
-  const [gr, gc] = guessVal.split("-");
-  
-  // Validate
+  const triangleTypeGuess = document.getElementById("triangleTypeGuess").value;
+
+  const colLetter = guessVal[0]?.toUpperCase();
+  const rowNumber = parseInt(guessVal.slice(1));
+  const gr = rowNumber - 1;
+  const gc = colLetter?.charCodeAt(0) - "A".charCodeAt(0);
+  const guessKey = `${gr}-${gc}`;
+
   if (isNaN(gr) || isNaN(gc) || gr < 0 || gr >= rows || gc < 0 || gc >= cols) {
     document.getElementById("guessFeedback").innerHTML = 
-      "Invalid guess. Use row-col, e.g. '0-1' (rows/cols: 0..3)";
+      "Invalid guess. Guess something like A2.";
     return;
   }
 
-  // Example: track duplicates if desired, using a set
-  // (omitted if you already have that logic)
+  // 🚫 Check if the cell is already solved
+  if (solvedCells.has(guessKey)) {
+    document.getElementById("guessFeedback").innerHTML = 
+      `You've already correctly guessed the triangle at [${guessVal}]. Try a different cell.`;
+    return;
+  }
 
-  // Check for triangle
-  if (gridData[gr][gc]) {
-    // DO NOT remove it from gridData!
-    // Instead, just reveal it visually.
-    let foundCorner = gridData[gr][gc];
+  // Track guesses for each cell
+  if (!guessedPositions.has(guessKey)) {
+    guessedPositions.set(guessKey, new Set());
+  }
 
-    // Show it in red
-    const cell = document.getElementById(`${gr}-${gc}`);
-    cell.textContent = foundCorner;
+  const guessedTypes = guessedPositions.get(guessKey);
+
+  // Prevent duplicate guesses for the same triangle type
+  if (guessedTypes.has(triangleTypeGuess)) {
+    document.getElementById("guessFeedback").innerHTML = 
+      `You've already guessed [${guessVal}] with ${triangleTypeGuess}. Try a different type or cell.`;
+    return;
+  }
+
+  guessedTypes.add(triangleTypeGuess);
+  guessCount++;
+
+  const cell = document.getElementById(`${gr}-${gc}`);
+  const triangleAtCell = gridData[gr][gc];
+
+  const triangleMapping = {
+    "Triangle-UL.png": "UL",
+    "Triangle-UR.png": "UR",
+    "Triangle-DL.png": "DL",
+    "Triangle-DR.png": "DR"
+  };
+
+  if (triangleAtCell && triangleMapping[triangleAtCell] === triangleTypeGuess) {
+    // ✅ Correct Guess
+    cell.innerHTML = `<img src="${triangleAtCell}" alt="Triangle" width="50" height="50">`;
     cell.classList.add("triangle");
-    cell.style.color = "red";
 
     totalTriangles--;
+    solvedCells.add(guessKey);  // 🚀 Mark this cell as solved
+
     document.getElementById("guessFeedback").innerHTML = `
-      <strong>Hit!</strong> You found a triangle at [${guessVal}].
-      <br>Triangles left: ${totalTriangles}
-      <br>Guesses so far: ${guessCount}
+      <strong>Hit!</strong> You found a ${triangleTypeGuess} triangle at [${guessVal}].<br>
+      Triangles left: ${totalTriangles}<br>
+      Guesses so far: ${guessCount}
     `;
 
-    // If all found, end game
     if (totalTriangles === 0) {
       document.getElementById("guessFeedback").innerHTML = `
         <strong>All Triangles Found!</strong><br>
@@ -405,13 +498,27 @@ function guessTriangle() {
         <button onclick="newGame()">Play Again</button>
       `;
     }
-  } else {
+  } else if (triangleAtCell) {
+    // ❗ Wrong Type
+    cell.style.backgroundColor = "orange";
     document.getElementById("guessFeedback").innerHTML = `
-      <strong>Miss!</strong> No triangle at [${guessVal}].
-      <br>Guesses so far: ${guessCount}
+      <strong>Close!</strong> There's a triangle at [${guessVal}], but it's not a ${triangleTypeGuess}.<br>
+      Guesses so far: ${guessCount}
+    `;
+  } else {
+    // ❌ No Triangle
+    cell.style.backgroundColor = "lightgray";
+    document.getElementById("guessFeedback").innerHTML = `
+      <strong>Miss!</strong> No triangle at [${guessVal}].<br>
+      Guesses so far: ${guessCount}
     `;
   }
 }
+
+
+
+
+
 
 /** Init the game on load */
 window.onload = newGame;
