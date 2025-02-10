@@ -1,3 +1,210 @@
+<Style>
+/* styles.css */
+
+/* Custom CSS variables */
+:root {
+  --primary-color: #ff4081;
+  --primary-hover: #ff79a9;
+  /* Pronounced gradient between deep purple and vibrant blue */
+  --bg-gradient: linear-gradient(135deg, #8e44ad, #3498db);
+  --text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  --cell-size: 70px;
+}
+
+/* Global styles */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg-gradient);
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  overflow-x: hidden;
+  transition: background 0.5s ease;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  text-shadow: var(--text-shadow);
+  animation: fadeInDown 1s ease-out;
+}
+
+/* Input sections */
+.input-section {
+  margin: 20px auto;
+  padding: 15px;
+  max-width: 400px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 1.2s ease-out;
+}
+
+/* Buttons */
+button {
+  background: var(--primary-color);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.2s ease, background 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+button:hover {
+  background: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* Feedback panels */
+#feedback, 
+#guessFeedback {
+  margin: 10px auto;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.25);
+  max-width: 400px;
+  border-radius: 8px;
+  font-family: monospace;
+  animation: fadeIn 1s ease-out;
+}
+
+/* Outer grid table styling */
+table {
+  border-collapse: collapse;
+  margin: 20px auto;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  animation: scaleUp 1s ease-out;
+}
+
+th, td {
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  width: var(--cell-size);
+  height: var(--cell-size);
+  text-align: center;
+  vertical-align: middle;
+  font-family: monospace;
+  font-size: 50px;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+th {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Beam animation classes for "rays" */
+.beam-entry {
+  animation: beamGlow 0.6s ease-in-out infinite alternate;
+}
+
+.beam-exit {
+  animation: beamExitGlow 1s ease-in-out;
+}
+
+.beam-split {
+  background: linear-gradient(to bottom right, rgba(255, 255, 0, 0.7) 50%, rgba(0, 255, 0, 0.7) 50%);
+}
+
+/* (When "Show Rays" is OFF, the instant mode will simply mark the exit cell.
+   No CSS modifications are necessary here because the JS will compute instantly.) */
+
+/* Hidden triangle cell styling (before revealed) */
+.triangle {
+  background: transparent;
+}
+
+/* Wedge element for revealed triangles */
+.triangle .wedge {
+  width: 100%;
+  height: 100%;
+  background: red;
+}
+
+/* Right triangle shapes using clip-path */
+.wedge-tl {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.wedge-tr {
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.wedge-bl {
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.wedge-br {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* Preview triangle styling */
+.preview-triangle {
+  position: absolute;
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background: rgba(255, 0, 0, 0.5);
+  pointer-events: none;
+  display: none;
+  transition: top 0.1s, left 0.1s;
+}
+
+.preview-tl {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.preview-tr {
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.preview-bl {
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.preview-br {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); }
+  to { transform: scale(1); }
+}
+
+@keyframes beamGlow {
+  0% { background-color: yellow; }
+  100% { background-color: rgba(255, 255, 0, 0.5); }
+}
+
+@keyframes beamExitGlow {
+  0% { background-color: green; }
+  100% { background-color: rgba(0, 255, 0, 0.5); }
+}
+</Style>
+
+  
+
+
 <html lang="en">
 <!-- Made by Achinti -->
 <head>
